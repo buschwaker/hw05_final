@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block title %}Активность любимых авторов{% endblock %}
+{% block content %}
+{% load thumbnail %}
+  <div class="container py-5">
+    <h1>Активность любимых авторов</h1>
+      {% include 'includes/switcher.html' %}
+      {% if page_obj %}
+      {% for post in page_obj %}
+        <ul>
+          {% if post.author.get_full_name %}
+          <li>
+            Автор: {{ post.author.get_full_name }} <a href="{% url 'posts:profile' post.author.username %}">все посты пользователя</a>
+          </li>
+          {% else %}
+          <li>
+            Автор: {{ post.author.username }} <a href="{% url 'posts:profile' post.author.username %}">все посты пользователя</a>
+          </li>
+          {% endif %}
+          <li>
+            Дата публикации: {{ post.created|date:"d E Y" }}
+          </li>
+        </ul>
+        {% thumbnail post.image "960x339" crop="center" upscale=True as im %}
+        <img class="card-img my-2" src="{{ im.url }}">
+        {% endthumbnail %}
+        <p>{{ post.text }}</p>
+        <a href="{% url 'posts:post_detail' post.pk %}">подробная информация </a>
+        <br>
+        {% if post.group %}
+        <a href="{% url 'posts:group_page' post.group.slug %}">все записи группы</a>
+        {% endif %}
+        {% if not forloop.last %}<hr>{% endif %}
+      {% endfor %}
+      {% endif %}
+
+    {% include 'includes/paginator.html' %}
+
+  </div>
+{% endblock %}
