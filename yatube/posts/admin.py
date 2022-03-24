@@ -36,8 +36,4 @@ class GroupAdmin(admin.ModelAdmin):
 
 admin.site.register(Group, GroupAdmin)
 
-
-
-
-
 admin.site.register(Follow)

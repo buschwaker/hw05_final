@@ -271,11 +271,15 @@ class PostTests(TestCase):
         self.authorized_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': PostTests.user_to_follow}))
-        response_sub = self.authorized_client.get(reverse('posts:follow_index'))
+        response_sub = self.authorized_client.get(
+            reverse('posts:follow_index')
+        )
         self.assertIn(
             test_post.text,
             response_sub.content.decode("utf-8"))
-        response_non_sub = self.authorized_non_sub.get(reverse('posts:follow_index'))
+        response_non_sub = self.authorized_non_sub.get(
+            reverse('posts:follow_index')
+        )
         self.assertNotIn(
             test_post.text,
             response_non_sub.content.decode("utf-8"))
