@@ -67,21 +67,26 @@ class PostCreateTests(TestCase):
             'тексты постов не совпадают'
         )
 
-    def test_comment_form(self):
+    def test_comment_form_authorised(self):
+        count_before_comment = Comment.objects.count()
         self.authorized_client.post(
             reverse('posts:add_comment', kwargs={'post_id': '1'}),
             data={'text': 'Комментарий к первому посту 1'},
-            follow=True
-        )
-        self.guest_user.post(
-            reverse('posts:add_comment', kwargs={'post_id': '1'}),
-            data={'text': 'Комментарий к первому посту 2'},
             follow=True
         )
         self.assertTrue(Comment.objects.filter(
             text='Комментарий к первому посту 1',
             author__username='auth',
             post__pk=1).exists())
+        self.assertEqual(Comment.objects.count(), count_before_comment + 1)
+
+    def test_comment_form_unauthorised(self):
+        count_before_comment = Comment.objects.count()
+        self.guest_user.post(
+            reverse('posts:add_comment', kwargs={'post_id': '1'}),
+            data={'text': 'Комментарий к первому посту 2'},
+            follow=True
+        )
         self.assertFalse(Comment.objects.filter(
             text='Комментарий к первому посту 2').exists())
-        self.assertEqual(Comment.objects.count(), 1)
+        self.assertEqual(Comment.objects.count(), count_before_comment)

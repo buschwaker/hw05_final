@@ -37,24 +37,16 @@ def profile(request, username):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     count = all_user_posts.count()
-    if request.user.is_authenticated:
-        if author.pk in list(
-                following.author.pk
-                for following in request.user.follower.all()):
-            following = True
-        else:
-            following = False
-        context = {
-            'author': author,
-            'page_obj': page_obj,
-            'count': count,
-            'following': following,
-        }
-        return render(request, 'posts/profile.html', context)
+    if request.user.is_authenticated and Follow.objects.filter(
+            user=request.user, author=author).exists():
+        following = True
+    else:
+        following = False
     context = {
         'author': author,
         'page_obj': page_obj,
         'count': count,
+        'following': following,
     }
     return render(request, 'posts/profile.html', context)
 
@@ -132,8 +124,9 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     user_to_follow = get_object_or_404(User, username=username)
-    if user_to_follow.pk in list(
-            following.author.pk for following in request.user.follower.all()):
+    if Follow.objects.filter(
+            user=request.user,
+            author=user_to_follow).exists():
         return redirect('posts:follow_index')
     if user_to_follow == request.user:
         return redirect('posts:follow_index')
@@ -148,8 +141,9 @@ def profile_unfollow(request, username):
     user_to_unfollow = get_object_or_404(User, username=username)
     if user_to_unfollow == request.user:
         return redirect('posts:follow_index')
-    if user_to_unfollow.pk not in list(
-            following.author.pk for following in request.user.follower.all()):
+    if not Follow.objects.filter(
+            user=request.user,
+            author=user_to_unfollow).exists():
         return redirect('posts:follow_index')
     Follow.objects.get(
         user=request.user,

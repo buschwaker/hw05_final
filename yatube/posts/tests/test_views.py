@@ -9,7 +9,7 @@ from django import forms
 from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from posts.models import Post, Group, Comment
+from posts.models import Post, Group, Comment, Follow
 
 User = get_user_model()
 
@@ -38,6 +38,7 @@ class PostTests(TestCase):
         cls.non_sub = User.objects.create(
             username='non_sub'
         )
+        cls.sub = User.objects.create(username='sub')
         cls.user = User.objects.create(
             username='auth',
         )
@@ -76,6 +77,8 @@ class PostTests(TestCase):
         )
         self.authorized_client = Client()
         self.authorized_client.force_login(self.user)
+        self.authorized_client_sub = Client()
+        self.authorized_client_sub.force_login(PostTests.sub)
         self.authorized_non_sub = Client()
         self.authorized_non_sub.force_login(PostTests.non_sub)
 
@@ -243,43 +246,42 @@ class PostTests(TestCase):
         self.assertNotIn(post_to_delete.text,
                          response.content.decode("utf-8"))
 
-    def test_follow_unfollow_view(self):
+    def test_follow_view(self):
         self.authorized_client.get(reverse(
             'posts:profile_follow',
             kwargs={'username': PostTests.user_to_follow}))
-        user_follower = self.user
-        self.assertIn(
-            PostTests.user_to_follow.pk,
-            list(
-                following.author.pk
-                for following in user_follower.follower.all()
-            ))
+        self.assertTrue(
+            Follow.objects.filter(
+                user=self.user,
+                author=PostTests.user_to_follow,
+            ).exists()
+        )
+
+    def test_unfollow_view(self):
         self.authorized_client.get(reverse(
             'posts:profile_unfollow',
             kwargs={'username': PostTests.user_to_follow}))
-        self.assertNotIn(
-            PostTests.user_to_follow.pk,
-            list(
-                following.author.pk
-                for following in user_follower.follower.all()
-            ))
+        self.assertFalse(
+            Follow.objects.filter(
+                user=self.user,
+                author=PostTests.user_to_follow,
+            ).exists())
 
     def test_if_sub_see_post(self):
-        test_post = Post.objects.create(
-            text='Text to see by subs',
-            author=PostTests.user_to_follow)
-        self.authorized_client.get(reverse(
+        self.authorized_client_sub.get(reverse(
             'posts:profile_follow',
-            kwargs={'username': PostTests.user_to_follow}))
-        response_sub = self.authorized_client.get(
+            kwargs={'username': self.user.username}))
+        response_sub = self.authorized_client_sub.get(
             reverse('posts:follow_index')
         )
         self.assertIn(
-            test_post.text,
-            response_sub.content.decode("utf-8"))
+            PostTests.post.text,
+            response_sub.content.decode("utf-8"), 'не нашлось')
+
+    def test_if_non_sub_see_post(self):
         response_non_sub = self.authorized_non_sub.get(
             reverse('posts:follow_index')
         )
         self.assertNotIn(
-            test_post.text,
+            PostTests.post.text,
             response_non_sub.content.decode("utf-8"))
